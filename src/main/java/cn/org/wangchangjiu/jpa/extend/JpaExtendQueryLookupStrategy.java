@@ -1,8 +1,9 @@
 package cn.org.wangchangjiu.jpa.extend;
 
-import jakarta.persistence.EntityManager;
 import org.springframework.data.jpa.provider.QueryExtractor;
-import org.springframework.data.jpa.repository.query.*;
+import org.springframework.data.jpa.repository.query.EscapeCharacter;
+import org.springframework.data.jpa.repository.query.JpaQueryLookupStrategy;
+import org.springframework.data.jpa.repository.query.JpaQueryMethod;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryMetadata;
@@ -11,6 +12,7 @@ import org.springframework.data.repository.query.QueryMethodEvaluationContextPro
 import org.springframework.data.repository.query.RepositoryQuery;
 import org.springframework.lang.Nullable;
 
+import javax.persistence.EntityManager;
 import java.lang.reflect.Method;
 
 /**
@@ -25,21 +27,18 @@ public class JpaExtendQueryLookupStrategy implements QueryLookupStrategy {
 
     private QueryLookupStrategy jpaQueryLookupStrategy;
 
-    private  JpaQueryMethodFactory queryMethodFactory;
+    private QueryExtractor extractor;
 
-    public JpaExtendQueryLookupStrategy(EntityManager em, JpaQueryMethodFactory queryMethodFactory,
-                                        @Nullable Key key, QueryMethodEvaluationContextProvider evaluationContextProvider,
-                                        QueryRewriterProvider queryRewriterProvider, EscapeCharacter escape) {
-        this.jpaQueryLookupStrategy = JpaQueryLookupStrategy.create(em, queryMethodFactory, key, evaluationContextProvider, queryRewriterProvider, escape);
+    public JpaExtendQueryLookupStrategy(EntityManager em, @Nullable Key key, QueryExtractor extractor,
+                                        QueryMethodEvaluationContextProvider evaluationContextProvider, EscapeCharacter escape) {
+        this.jpaQueryLookupStrategy = JpaQueryLookupStrategy.create(em, key, extractor, evaluationContextProvider, escape);
+        this.extractor = extractor;
         this.entityManager = em;
-        this.queryMethodFactory = queryMethodFactory;
-
     }
 
-    public static QueryLookupStrategy create(EntityManager em, JpaQueryMethodFactory queryMethodFactory,
-                                             @Nullable Key key, QueryMethodEvaluationContextProvider evaluationContextProvider,
-                                             QueryRewriterProvider queryRewriterProvider, EscapeCharacter escape) {
-        return new JpaExtendQueryLookupStrategy(em, queryMethodFactory, key,  evaluationContextProvider, queryRewriterProvider, escape);
+    public static QueryLookupStrategy create(EntityManager em, @Nullable Key key, QueryExtractor extractor,
+                                             QueryMethodEvaluationContextProvider evaluationContextProvider, EscapeCharacter escape) {
+        return new JpaExtendQueryLookupStrategy(em, key, extractor, evaluationContextProvider, escape);
     }
 
     @Override
@@ -49,7 +48,7 @@ public class JpaExtendQueryLookupStrategy implements QueryLookupStrategy {
             return jpaQueryLookupStrategy.resolveQuery(method, metadata, factory, namedQueries);
         } else {
             MyQuery myQuery = method.getAnnotation(MyQuery.class);
-            return new JpaExtendQuery(queryMethodFactory.build(method, metadata, factory), entityManager, myQuery.value(), myQuery.nativeQuery());
+            return new JpaExtendQuery(new JpaQueryMethod(method, metadata, factory, extractor), entityManager, myQuery.value(), myQuery.nativeQuery());
         }
     }
 

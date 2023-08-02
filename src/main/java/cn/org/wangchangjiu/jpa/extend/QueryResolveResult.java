@@ -1,8 +1,8 @@
 package cn.org.wangchangjiu.jpa.extend;
 
-import jakarta.persistence.Query;
 import lombok.Data;
 
+import javax.persistence.Query;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -10,7 +10,7 @@ import org.hibernate.property.access.internal.PropertyAccessStrategyChainedImpl;
 import org.hibernate.property.access.internal.PropertyAccessStrategyFieldImpl;
 import org.hibernate.property.access.internal.PropertyAccessStrategyMapImpl;
 import org.hibernate.property.access.spi.Setter;
-import org.hibernate.transform.ResultTransformer;
+import org.hibernate.transform.AliasedTupleSubsetResultTransformer;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -28,7 +28,7 @@ import java.util.function.Function;
  * @Created by wangchangjiu
  */
 @Slf4j
-public class JpaExtendResultTransformer implements ResultTransformer {
+public class JpaExtendResultTransformer extends AliasedTupleSubsetResultTransformer {
 
     // IMPL NOTE : due to the delayed population of setters (setters cached
     // 		for performance), we really cannot properly define equality for
@@ -70,9 +70,7 @@ public class JpaExtendResultTransformer implements ResultTransformer {
      */
     private static Boolean parseBoolean(String arg) {
         if (StringUtils.isNumeric(arg)) {
-            if ("0".equals(arg)) {
-                return false;
-            }
+            if ("0".equals(arg)) return false;
         } else {
             return Boolean.parseBoolean(arg);
         }
@@ -87,10 +85,10 @@ public class JpaExtendResultTransformer implements ResultTransformer {
         this.resultClass = resultClass;
     }
 
-/*    @Override
+    @Override
     public boolean isTransformedValueATupleElement(String[] aliases, int tupleLength) {
         return false;
-    }*/
+    }
 
     @Override
     public Object transformTuple(Object[] tuple, String[] aliases) {
@@ -120,15 +118,16 @@ public class JpaExtendResultTransformer implements ResultTransformer {
                         Class<?> paramType = setters[i].getMethod().getParameterTypes()[0];
                         Function convertType = typeConversionMap.get(paramType);
                         Object convertedObject = (convertType == null) ? tuple[i] : (tuple[i] == null) ? null : convertType.apply(tuple[i]);
-                        setters[i].set(result, convertedObject);
+                        setters[i].set(result, convertedObject, null);
+//                    setters[i].set( result, tuple[i], null );
                     }
                 }
                 return result;
             }
         } catch (InstantiationException e) {
-            throw new HibernateException("Could not instantiate result class: " + resultClass.getName());
+            throw new HibernateException("Could not instantiate resultclass: " + resultClass.getName());
         } catch (IllegalAccessException e) {
-            throw new HibernateException("Could not instantiate result class: " + resultClass.getName());
+            throw new HibernateException("Could not instantiate resultclass: " + resultClass.getName());
         }
     }
 
@@ -150,7 +149,7 @@ public class JpaExtendResultTransformer implements ResultTransformer {
             String alias = aliases[i];
             if (alias != null && checkPropertySetter(resultClass, alias)) {
                 this.aliases[i] = alias;
-                setters[i] = propertyAccessStrategy.buildPropertyAccess(resultClass, alias, true).getSetter();
+                setters[i] = propertyAccessStrategy.buildPropertyAccess(resultClass, alias).getSetter();
             }
         }
         isInitialized = true;

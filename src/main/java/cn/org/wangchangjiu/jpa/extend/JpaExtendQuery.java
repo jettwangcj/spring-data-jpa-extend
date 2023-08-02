@@ -1,14 +1,20 @@
 package cn.org.wangchangjiu.jpa.extend;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.query.sql.internal.NativeQueryImpl;
+import org.hibernate.query.internal.NativeQueryImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.query.*;
+import org.springframework.data.jpa.repository.query.AbstractJpaQuery;
+import org.springframework.data.jpa.repository.query.JpaParameters;
+import org.springframework.data.jpa.repository.query.JpaQueryMethod;
+import org.springframework.data.jpa.repository.query.QueryUtils;
+import org.springframework.data.repository.query.ParameterAccessor;
+import org.springframework.data.repository.query.ParametersParameterAccessor;
+
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 
 /**
  * @Classname MyExtendJpaQuery
@@ -40,10 +46,9 @@ public class JpaExtendQuery extends AbstractJpaQuery {
     }
 
     @Override
-    protected Query doCreateQuery(JpaParametersParameterAccessor accessor) {
+    protected Query doCreateQuery(Object[] values) {
 
         JpaParameters parameters = getQueryMethod().getParameters();
-        Object[] values = accessor.getValues();
 
         QueryResolveResult resolveResult = ExpressionQueryResolverStrategy.resolve(declaredQuery.getQueryString(), parameters, values);
 
@@ -51,7 +56,7 @@ public class JpaExtendQuery extends AbstractJpaQuery {
 
         log.info("MyExtendJpaQuery before sql :{} resolve sql:{}", declaredQuery.getQueryString(), nativeQuery);
 
-      //  ParameterAccessor accessor = new ParametersParameterAccessor(parameters, values);
+        ParameterAccessor accessor = new ParametersParameterAccessor(parameters, values);
         String sortedQueryString = QueryUtils
                 .applySorting(nativeQuery, accessor.getSort(), QueryUtils.detectAlias(nativeQuery));
 
@@ -71,10 +76,9 @@ public class JpaExtendQuery extends AbstractJpaQuery {
 
 
     @Override
-    protected Query doCreateCountQuery(JpaParametersParameterAccessor accessor) {
+    protected Query doCreateCountQuery(Object[] values) {
 
         JpaParameters parameters = getQueryMethod().getParameters();
-        Object[] values = accessor.getValues();
 
         QueryResolveResult resolveResult = ExpressionQueryResolverStrategy.resolve(declaredQuery.getQueryString(), parameters, values);
         String nativeQuery = resolveResult.getAfterParseSQL();
