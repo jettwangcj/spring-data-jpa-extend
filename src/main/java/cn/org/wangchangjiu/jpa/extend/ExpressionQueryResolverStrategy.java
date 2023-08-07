@@ -22,11 +22,16 @@ public final class ExpressionQueryResolverStrategy {
      */
     interface ExpressionQueryResolver {
 
+        String PLACEHOLDER_PREFIX = "?{";
+        String PLACEHOLDER_SUFFIX = "}";
+
+        String BLANK_STR = "";
+
         /**
          *  占位符 表达式 正则 匹配
-         *  ?.{and v.pay_channel_code = :payChannel}
+         *  ?{and v.pay_channel_code = :payChannel}
          */
-        Pattern PLACEHOLDER_EXPRESSION_PARAMETER = Pattern.compile("\\?\\.\\{(.+?)\\}");
+        Pattern PLACEHOLDER_EXPRESSION_PARAMETER = Pattern.compile("\\?\\{(.+?)\\}");
 
         /**
          *  position 表达式 匹配 ?1
@@ -151,7 +156,7 @@ public final class ExpressionQueryResolverStrategy {
 
                 }
 
-                String afterParseSQL = queryString.replace("?.{", "").replace("}", "");
+                String afterParseSQL = queryString.replace(PLACEHOLDER_PREFIX, BLANK_STR).replace(PLACEHOLDER_SUFFIX, BLANK_STR);
                 return new QueryResolveResult.PositionExpressionQueryResolveResult(afterParseSQL, removeParamIndex, JpaExtendQueryUtils.toPositionMap(values));
             }
         },
@@ -187,7 +192,7 @@ public final class ExpressionQueryResolverStrategy {
                     queryString = super.nameParameterProcessor(queryString, allQueryParams, removeParams, matchExpression);
                 }
 
-                String afterParseSQL = queryString.replace("?.{", "").replace("}", "");
+                String afterParseSQL = queryString.replace(PLACEHOLDER_PREFIX, BLANK_STR).replace(PLACEHOLDER_SUFFIX, BLANK_STR);
                 return new QueryResolveResult.NameExpressionQueryResolveResult(afterParseSQL, removeParams, allQueryParams);
             }
         },
@@ -258,19 +263,6 @@ public final class ExpressionQueryResolverStrategy {
         }
        return resolverEnumOptional.get().resolve(queryString, parameters, values);
     }
-
-    public static void main(String[] args) {
-        Pattern compile = Pattern.compile(":[a-zA-Z0-9]+");
-        String s = "where g.goods_code = :1\n" +
-                "and v.pay_channel_code = :code";
-        Matcher matcher = compile.matcher(s);
-
-        while (matcher.find()){
-            System.out.println(matcher.group());
-        }
-
-    }
-
 
 }
 
