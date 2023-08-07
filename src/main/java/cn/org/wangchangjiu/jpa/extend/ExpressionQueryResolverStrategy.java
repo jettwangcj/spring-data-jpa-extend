@@ -69,6 +69,10 @@ public final class ExpressionQueryResolverStrategy {
                     removeParams.add(parameterName);
                 }
             }
+            if(removeParams.size() == allQueryParams.size()){
+                // 参数全部为空 ， 去掉 where 关键字
+                queryString = StrUtil.replace(queryString, "where", "", true);
+            }
 
             return queryString;
         }
@@ -99,6 +103,11 @@ public final class ExpressionQueryResolverStrategy {
                     String newParameter = parameterExpression.replace("?" + index, "?" + newIndex);
                     queryString = queryString.replace(parameterExpression, newParameter);
                 }
+            }
+
+            if(removeParamIndex.size() == values.length){
+                // 参数全部为空 ， 去掉 where 关键字
+                queryString = StrUtil.replace(queryString, "where", "", true);
             }
 
             return queryString;
