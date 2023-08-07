@@ -3,6 +3,7 @@ package cn.org.wangchangjiu.jpa.extend;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +17,7 @@ import java.util.List;
  * @Created by wangchangjiu
  */
 @NoRepositoryBean
-public interface JpaExtendRepository<T, ID extends Serializable> extends JpaRepository<T, ID> {
+public interface JpaExtendRepository<T, ID extends Serializable> extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
 
 
      Page<T> findAll(Object paramObj, Pageable pageable);

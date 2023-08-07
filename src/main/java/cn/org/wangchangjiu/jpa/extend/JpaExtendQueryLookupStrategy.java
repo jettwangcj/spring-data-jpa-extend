@@ -48,7 +48,9 @@ public class JpaExtendQueryLookupStrategy implements QueryLookupStrategy {
             return jpaQueryLookupStrategy.resolveQuery(method, metadata, factory, namedQueries);
         } else {
             MyQuery myQuery = method.getAnnotation(MyQuery.class);
-            return new JpaExtendQuery(new JpaQueryMethod(method, metadata, factory, extractor), entityManager, myQuery.value(), myQuery.nativeQuery());
+            JpaQueryMethod jpaQueryMethod = new JpaQueryMethod(method, metadata, factory, extractor);
+            return myQuery.nativeQuery() ? new NativeJpaExtendQuery(jpaQueryMethod, entityManager, myQuery) :
+                    new SimpleJpaExtendQuery(jpaQueryMethod, entityManager, myQuery);
         }
     }
 

@@ -2,7 +2,6 @@ package cn.org.wangchangjiu.jpa.extend;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean;
-import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 
 import javax.persistence.EntityManager;
@@ -24,7 +23,7 @@ public class JpaExtendRepositoryFactoryBean<R extends JpaRepository<T, I>, T, I 
     @Override
     protected RepositoryFactorySupport createRepositoryFactory(EntityManager entityManager) {
         RepositoryFactorySupport factorySupport = new JpaExtendRepositoryFactory(entityManager);
-        factorySupport.setRepositoryBaseClass(SimpleJpaRepository.class);
+        factorySupport.setRepositoryBaseClass(JpaExtendRepositoryImpl.class);
         return factorySupport;
     }
 
