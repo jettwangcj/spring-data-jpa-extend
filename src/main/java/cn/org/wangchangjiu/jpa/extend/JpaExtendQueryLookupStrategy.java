@@ -1,10 +1,7 @@
 package cn.org.wangchangjiu.jpa.extend;
 
 import jakarta.persistence.EntityManager;
-import org.springframework.data.jpa.repository.query.EscapeCharacter;
-import org.springframework.data.jpa.repository.query.JpaQueryLookupStrategy;
-import org.springframework.data.jpa.repository.query.JpaQueryMethodFactory;
-import org.springframework.data.jpa.repository.query.QueryRewriterProvider;
+import org.springframework.data.jpa.repository.query.*;
 import org.springframework.data.projection.ProjectionFactory;
 import org.springframework.data.repository.core.NamedQueries;
 import org.springframework.data.repository.core.RepositoryMetadata;
@@ -50,8 +47,11 @@ public class JpaExtendQueryLookupStrategy implements QueryLookupStrategy {
         if (method.getAnnotation(MyQuery.class) == null) {
             return jpaQueryLookupStrategy.resolveQuery(method, metadata, factory, namedQueries);
         } else {
+
             MyQuery myQuery = method.getAnnotation(MyQuery.class);
-            return new JpaExtendQuery(queryMethodFactory.build(method, metadata, factory), entityManager, myQuery.value(), myQuery.nativeQuery());
+            JpaQueryMethod jpaQueryMethod = queryMethodFactory.build(method, metadata, factory);
+            return myQuery.nativeQuery() ? new NativeJpaExtendQuery(jpaQueryMethod, entityManager, myQuery) :
+                    new SimpleJpaExtendQuery(jpaQueryMethod, entityManager, myQuery);
         }
     }
 
