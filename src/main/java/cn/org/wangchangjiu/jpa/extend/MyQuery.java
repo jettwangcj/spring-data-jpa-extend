@@ -42,5 +42,10 @@ public @interface MyQuery {
      */
     boolean nativeQuery() default false;
 
-
+    /**
+     *  是否需要解析表达式
+     *  比如 占位符 ?{ }
+     * @return
+     */
+    boolean expressionQuery() default true;
 }

@@ -56,7 +56,7 @@ public final class ExpressionQueryResolverStrategy {
          */
         Pattern NO_PLACEHOLDER_NAME_EXPRESSION_PARAMETER = Pattern.compile("(where|WHERE|and|AND|or|OR)\\s+[a-zA-Z._]+\\s+=\\s+:[a-zA-Z0-9]+");
 
-        boolean match(String queryString);
+        boolean match(String queryString, boolean expressionQuery);
 
         QueryResolveResult resolve(String queryString, JpaParameters parameters, Object[] values);
 
@@ -66,18 +66,18 @@ public final class ExpressionQueryResolverStrategy {
 
             if(parameterExpressionMatcher.find()){
 
-                String parameterName = parameterExpressionMatcher.group().replace(":", "");
+                String parameterName = parameterExpressionMatcher.group().replace(":", BLANK_STR);
 
                 Object parameterValue = allQueryParams.get(parameterName);
 
                 if(parameterValue == null){
-                    queryString = queryString.replace(matchExpression, "");
+                    queryString = queryString.replace(matchExpression, BLANK_STR);
                     removeParams.add(parameterName);
                 }
             }
             if(removeParams.size() == allQueryParams.size()){
                 // 参数全部为空 ， 去掉 where 关键字
-                queryString = StrUtil.replace(queryString, "where", "", true);
+                queryString = StrUtil.replace(queryString, "where", BLANK_STR, true);
             }
 
             return queryString;
@@ -92,14 +92,14 @@ public final class ExpressionQueryResolverStrategy {
 
                 // ?1
                 String paramExpression = positionExpressionMatcher.group();
-                Integer index = Integer.valueOf(paramExpression.replace("?", ""));
+                Integer index = Integer.valueOf(paramExpression.replace("?", BLANK_STR));
 
                 Integer position = index - 1;
                 Object paramValue = values[position];
 
                 if(paramValue == null){
                     // 参数为空
-                    queryString = queryString.replace(parameterExpression, "");
+                    queryString = queryString.replace(parameterExpression, BLANK_STR);
                     removeParamIndex.add(position);
                 } else {
                     // 参数不为空 修改为 :paramName
@@ -113,7 +113,7 @@ public final class ExpressionQueryResolverStrategy {
 
             if(removeParamIndex.size() == values.length){
                 // 参数全部为空 ， 去掉 where 关键字
-                queryString = StrUtil.replace(queryString, "where", "", true);
+                queryString = StrUtil.replace(queryString, "where", BLANK_STR, true);
             }
 
             return queryString;
@@ -126,6 +126,24 @@ public final class ExpressionQueryResolverStrategy {
      */
     enum ExpressionQueryResolverEnum implements ExpressionQueryResolver {
 
+        EmptyExpressionQueryResolver(){
+            @Override
+            public boolean match(String queryString,  boolean expressionQuery) {
+                return !expressionQuery;
+            }
+
+            @Override
+            public QueryResolveResult resolve(String queryString, JpaParameters parameters, Object[] values) {
+                Matcher positionExpressionParameter = POSITION_EXPRESSION_PARAMETER.matcher(queryString);
+                boolean positionParam = false;
+                if(positionExpressionParameter.find()){
+                    positionParam = true;
+                }
+
+                return new QueryResolveResult.EmptyQueryResolveResult(queryString, positionParam, parameters, values);
+            }
+        },
+
         /**
          *  占位符 Position 表达式 查询处理器
          *
@@ -133,7 +151,10 @@ public final class ExpressionQueryResolverStrategy {
         PlaceholderPositionExpressionQueryResolver() {
 
             @Override
-            public boolean match(String queryString) {
+            public boolean match(String queryString, boolean expressionQuery) {
+                if(!expressionQuery){
+                    return false;
+                }
                 Matcher  expressionParameter = PLACEHOLDER_EXPRESSION_PARAMETER.matcher(queryString);
                 Matcher positionExpressionParameter = POSITION_EXPRESSION_PARAMETER.matcher(queryString);
                 return expressionParameter.find() && positionExpressionParameter.find();
@@ -168,7 +189,10 @@ public final class ExpressionQueryResolverStrategy {
         PlaceholderNameExpressionQueryResolver(){
 
             @Override
-            public boolean match(String queryString) {
+            public boolean match(String queryString, boolean expressionQuery) {
+                if(!expressionQuery){
+                    return false;
+                }
                 Matcher  expressionParameter = PLACEHOLDER_EXPRESSION_PARAMETER.matcher(queryString);
                 Matcher nameExpressionParameter = NAME_EXPRESSION_PARAMETER.matcher(queryString);
                 return expressionParameter.find() && nameExpressionParameter.find();
@@ -200,7 +224,10 @@ public final class ExpressionQueryResolverStrategy {
         PositionExpressionQueryResolver() {
 
             @Override
-            public boolean match(String queryString) {
+            public boolean match(String queryString,  boolean expressionQuery) {
+                if(!expressionQuery){
+                    return false;
+                }
                 return !PLACEHOLDER_EXPRESSION_PARAMETER.matcher(queryString).find() && NO_PLACEHOLDER_POSITION_EXPRESSION_PARAMETER.matcher(queryString).find();
             }
 
@@ -227,7 +254,10 @@ public final class ExpressionQueryResolverStrategy {
         NameExpressionQueryResolver() {
 
             @Override
-            public boolean match(String queryString) {
+            public boolean match(String queryString, boolean expressionQuery) {
+                if(!expressionQuery){
+                    return false;
+                }
                 return !PLACEHOLDER_EXPRESSION_PARAMETER.matcher(queryString).find() && NO_PLACEHOLDER_NAME_EXPRESSION_PARAMETER.matcher(queryString).find();
             }
 
@@ -255,14 +285,16 @@ public final class ExpressionQueryResolverStrategy {
     }
 
 
-    public static QueryResolveResult resolve(String queryString, JpaParameters parameters, Object[] values){
+    public static QueryResolveResult resolve(String queryString, boolean expressionQuery, JpaParameters parameters, Object[] values){
 
-        Optional<ExpressionQueryResolverEnum> resolverEnumOptional = Arrays.stream(ExpressionQueryResolverEnum.values()).filter(item -> item.match(queryString)).findFirst();
+        Optional<ExpressionQueryResolverEnum> resolverEnumOptional = Arrays.stream(ExpressionQueryResolverEnum.values()).filter(item -> item.match(queryString, expressionQuery)).findFirst();
         if(!resolverEnumOptional.isPresent()){
             throw new RuntimeException("没有找到SQL解析策略");
         }
-       return resolverEnumOptional.get().resolve(queryString, parameters, values);
+        return resolverEnumOptional.get().resolve(queryString, parameters, values);
     }
+
+
 
 }
 
