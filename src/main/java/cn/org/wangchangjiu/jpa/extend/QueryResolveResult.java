@@ -2,6 +2,7 @@ package cn.org.wangchangjiu.jpa.extend;
 
 import jakarta.persistence.Query;
 import lombok.Data;
+import org.springframework.data.jpa.repository.query.JpaParameters;
 
 import java.util.HashMap;
 import java.util.List;
@@ -68,6 +69,37 @@ public abstract class QueryResolveResult {
             });
 
             newQueryParams.forEach(query::setParameter);
+        }
+    }
+
+    @Data
+    public static class EmptyQueryResolveResult extends QueryResolveResult {
+
+        private boolean positionParam;
+        private JpaParameters parameters;
+
+        private Object[] values;
+
+        public EmptyQueryResolveResult(String afterParseSQL, boolean positionParam, JpaParameters parameters, Object[] values){
+            this.afterParseSQL = afterParseSQL;
+            this.positionParam = positionParam;
+            this.parameters = parameters;
+            this.values = values;
+        }
+
+
+        @Override
+        public void setQueryParams(Query query) {
+            if(parameters == null || parameters.isEmpty()){
+                return;
+            }
+            if(positionParam){
+                Map<Integer, Object> positionQueryParams = JpaExtendQueryUtils.toPositionMap(values);
+                positionQueryParams.forEach((position,value) -> query.setParameter( position + 1, value));
+            } else {
+                Map<String, Object> nameQueryParams = JpaExtendQueryUtils.getParams(parameters, values);
+                nameQueryParams.forEach(query::setParameter);
+            }
         }
     }
 

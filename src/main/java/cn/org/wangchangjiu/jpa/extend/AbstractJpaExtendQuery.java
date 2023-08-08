@@ -40,7 +40,7 @@ public abstract class AbstractJpaExtendQuery extends AbstractJpaQuery {
             throw new InvalidJpaQueryMethodException("SQL Cannot has constructor expression , SQL: " + myQuery.value());
         }
         this.declaredQuery = new DeclaredQuery(myQuery.value(), myQuery.countQuery(),
-                StringUtils.isEmpty(myQuery.countProjection()) ? null : myQuery.countProjection(), myQuery.nativeQuery());
+                StringUtils.isEmpty(myQuery.countProjection()) ? null : myQuery.countProjection(), myQuery.nativeQuery(), myQuery.expressionQuery());
         this.em = em;
 
     }
@@ -53,7 +53,7 @@ public abstract class AbstractJpaExtendQuery extends AbstractJpaQuery {
 
         RemovePageSortParametersParameterAccessor removePageSortParametersParameterAccessor = new RemovePageSortParametersParameterAccessor(parameters, values);
 
-        QueryResolveResult resolveResult = ExpressionQueryResolverStrategy.resolve(declaredQuery.getQueryString(), parameters, removePageSortParametersParameterAccessor.getRemovePageSortParameters());
+        QueryResolveResult resolveResult = ExpressionQueryResolverStrategy.resolve(declaredQuery.getQueryString(), declaredQuery.isExpressionQuery(), parameters, removePageSortParametersParameterAccessor.getRemovePageSortParameters());
 
         String nativeQuery = resolveResult.getAfterParseSQL();
 
@@ -92,7 +92,7 @@ public abstract class AbstractJpaExtendQuery extends AbstractJpaQuery {
         String countQueryString = StringUtils.isEmpty(declaredQuery.getCountQueryString()) ? declaredQuery.getQueryString() : declaredQuery.getCountQueryString();
 
         // 解析 动态 参数后的 count sql
-        QueryResolveResult resolveResult = ExpressionQueryResolverStrategy.resolve(countQueryString, parameters, removePageSortParametersParameterAccessor.getRemovePageSortParameters());
+        QueryResolveResult resolveResult = ExpressionQueryResolverStrategy.resolve(countQueryString, declaredQuery.isExpressionQuery(), parameters, removePageSortParametersParameterAccessor.getRemovePageSortParameters());
         String queryString = resolveResult.getAfterParseSQL();
 
         Query query = createJpaCountQuery(queryString);
@@ -115,6 +115,8 @@ public abstract class AbstractJpaExtendQuery extends AbstractJpaQuery {
         private String countProjection;
 
         private boolean nativeQuery;
+
+        private boolean expressionQuery;
 
     }
 }
