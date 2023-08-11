@@ -61,7 +61,7 @@ public class JpaExtendQueryUtils {
         for (int i = 0; i < parameters.getNumberOfParameters(); i++) {
             Object value = values[i];
             Parameter parameter = parameters.getParameter(i);
-            if(value == null){
+            if(objectIsNull(value)){
                 params.put(parameter.getName().orElse(null), null);
             }
             if (value != null && parameter.isBindable()) {
@@ -81,11 +81,21 @@ public class JpaExtendQueryUtils {
         return params;
     }
 
+    private static boolean objectIsNull(Object value){
+        if(value == null){
+            return true;
+        }
+        if(String.class.isAssignableFrom(value.getClass()) && StringUtils.isEmpty(value)){
+            return true;
+        }
+        return false;
+    }
+
     public static Map<Integer, Object> toPositionMap(Object[] values) {
         Map<Integer, Object> valueMap = new HashMap<>();
         int position = 0;
         for (Object paramValue: values) {
-            if(paramValue == null){
+            if(objectIsNull(paramValue)){
                 valueMap.put(position, null);
             } else {
 
@@ -95,7 +105,7 @@ public class JpaExtendQueryUtils {
 
                 Class<?> clz = paramValue.getClass();
                 if (clz.isPrimitive() || String.class.isAssignableFrom(clz) || Number.class.isAssignableFrom(clz)
-                        || clz.isArray() || Collection.class.isAssignableFrom(clz) || clz.isEnum()) {
+                        || clz.isArray() || Collection.class.isAssignableFrom(clz) || clz.isEnum() || Boolean.class.isAssignableFrom(clz)) {
                     valueMap.put(position, paramValue);
                 } else {
                     // 如果参数是对象

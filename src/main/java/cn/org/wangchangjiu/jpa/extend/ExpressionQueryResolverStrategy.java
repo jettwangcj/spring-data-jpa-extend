@@ -2,6 +2,7 @@ package cn.org.wangchangjiu.jpa.extend;
 
 import cn.hutool.core.util.StrUtil;
 import org.springframework.data.jpa.repository.query.JpaParameters;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -27,6 +28,8 @@ public final class ExpressionQueryResolverStrategy {
 
         String BLANK_STR = "";
 
+        String WHERE_KEY_WORDS = "where";
+
         /**
          *  占位符 表达式 正则 匹配
          *  ?{and v.pay_channel_code = :payChannel}
@@ -47,14 +50,19 @@ public final class ExpressionQueryResolverStrategy {
          *  非占位符 POSITION 表达式 正则 匹配
          *  and v.pay_channel_code = ?1
          */
-        Pattern NO_PLACEHOLDER_POSITION_EXPRESSION_PARAMETER = Pattern.compile("(where|WHERE|and|AND|or|OR)\\s+[a-zA-Z._]+\\s+=\\s+\\?[1-9+]");
+        Pattern NO_PLACEHOLDER_POSITION_EXPRESSION_PARAMETER = Pattern.compile("(where|WHERE|and|AND|or|OR)\\s+[a-zA-Z._]+\\s+=\\s+\\?[1-9+]", Pattern.CASE_INSENSITIVE);
 
         /**
          *  非占位符 name 表达式 匹配
          *
          *  and v.pay_channel_code = :payChannel
          */
-        Pattern NO_PLACEHOLDER_NAME_EXPRESSION_PARAMETER = Pattern.compile("(where|WHERE|and|AND|or|OR)\\s+[a-zA-Z._]+\\s+=\\s+:[a-zA-Z0-9]+");
+        Pattern NO_PLACEHOLDER_NAME_EXPRESSION_PARAMETER = Pattern.compile("(where|WHERE|and|AND|or|OR)\\s+[a-zA-Z._]+\\s+=\\s+:[a-zA-Z0-9]+", Pattern.CASE_INSENSITIVE);
+
+
+        // (where|WHERE)\\s+(and|AND|or|OR)
+        Pattern WHERE_KEYWORD_SYNTAX_ERROR = Pattern.compile("(where|WHERE)\\s+(and|AND|or|OR)", Pattern.CASE_INSENSITIVE);
+
 
         boolean match(String queryString, boolean expressionQuery);
 
@@ -75,10 +83,8 @@ public final class ExpressionQueryResolverStrategy {
                     removeParams.add(parameterName);
                 }
             }
-            if(removeParams.size() == allQueryParams.size()){
-                // 参数全部为空 ， 去掉 where 关键字
-                queryString = StrUtil.replace(queryString, "where", BLANK_STR, true);
-            }
+
+            //   queryString = this.whereKeywordSyntaxErrorProcessor(queryString, removeParams.size() == allQueryParams.size());
 
             return queryString;
         }
@@ -97,7 +103,7 @@ public final class ExpressionQueryResolverStrategy {
                 Integer position = index - 1;
                 Object paramValue = values[position];
 
-                if(paramValue == null){
+                if(paramValue == null || StringUtils.isEmpty(paramValue)){
                     // 参数为空
                     queryString = queryString.replace(parameterExpression, BLANK_STR);
                     removeParamIndex.add(position);
@@ -111,9 +117,25 @@ public final class ExpressionQueryResolverStrategy {
                 }
             }
 
-            if(removeParamIndex.size() == values.length){
+            // queryString = this.whereKeywordSyntaxErrorProcessor(queryString, removeParamIndex.size() == values.length);
+
+
+            return queryString;
+        }
+
+        default String whereKeywordSyntaxErrorProcessor(String queryString, boolean removeWhere){
+
+            if(removeWhere){
                 // 参数全部为空 ， 去掉 where 关键字
-                queryString = StrUtil.replace(queryString, "where", BLANK_STR, true);
+                queryString = StrUtil.replace(queryString, WHERE_KEY_WORDS, BLANK_STR, true);
+            }
+
+            Matcher whereKeywordSyntaxErrorMatcher = WHERE_KEYWORD_SYNTAX_ERROR.matcher(queryString);
+            if(whereKeywordSyntaxErrorMatcher.find()){
+
+                String whereKeywordSyntax = whereKeywordSyntaxErrorMatcher.group();
+
+                queryString = queryString.replace(whereKeywordSyntax, WHERE_KEY_WORDS);
             }
 
             return queryString;
@@ -178,6 +200,9 @@ public final class ExpressionQueryResolverStrategy {
                 }
 
                 String afterParseSQL = queryString.replace(PLACEHOLDER_PREFIX, BLANK_STR).replace(PLACEHOLDER_SUFFIX, BLANK_STR);
+
+                afterParseSQL = super.whereKeywordSyntaxErrorProcessor(afterParseSQL, removeParamIndex.size() == values.length);
+
                 return new QueryResolveResult.PositionExpressionQueryResolveResult(afterParseSQL, removeParamIndex, JpaExtendQueryUtils.toPositionMap(values));
             }
         },
@@ -217,6 +242,9 @@ public final class ExpressionQueryResolverStrategy {
                 }
 
                 String afterParseSQL = queryString.replace(PLACEHOLDER_PREFIX, BLANK_STR).replace(PLACEHOLDER_SUFFIX, BLANK_STR);
+
+                afterParseSQL = this.whereKeywordSyntaxErrorProcessor(afterParseSQL, removeParams.size() == allQueryParams.size());
+
                 return new QueryResolveResult.NameExpressionQueryResolveResult(afterParseSQL, removeParams, allQueryParams);
             }
         },
@@ -246,6 +274,8 @@ public final class ExpressionQueryResolverStrategy {
                     queryString = super.positionParameterProcessor(queryString, values, removeParamIndex, parameter);
                 }
 
+                queryString = super.whereKeywordSyntaxErrorProcessor(queryString, removeParamIndex.size() == values.length);
+
                 return new QueryResolveResult.PositionExpressionQueryResolveResult(queryString, removeParamIndex, JpaExtendQueryUtils.toPositionMap(values));
             }
         },
@@ -271,19 +301,19 @@ public final class ExpressionQueryResolverStrategy {
                 Matcher expressionParameter = NO_PLACEHOLDER_NAME_EXPRESSION_PARAMETER.matcher(queryString);
 
                 while (expressionParameter.find()) {
-
                     // and t.name = :name
                     String matchExpression = expressionParameter.group();
 
                     queryString = super.nameParameterProcessor(queryString, allQueryParams, removeParams, matchExpression);
                 }
 
+                queryString = this.whereKeywordSyntaxErrorProcessor(queryString, removeParams.size() == allQueryParams.size());
+
                 return new QueryResolveResult.NameExpressionQueryResolveResult(queryString, removeParams, allQueryParams);
             }
         }
 
     }
-
 
     public static QueryResolveResult resolve(String queryString, boolean expressionQuery, JpaParameters parameters, Object[] values){
 
@@ -293,8 +323,5 @@ public final class ExpressionQueryResolverStrategy {
         }
         return resolverEnumOptional.get().resolve(queryString, parameters, values);
     }
-
-
-
 }
 
