@@ -6,7 +6,7 @@ import java.lang.annotation.*;
  * @Classname JpaParam
  * @Description
  * @Date 2021/8/12 15:54
- * @Created by wangchangjiu
+ * @author wangchangjiu
  */
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
