@@ -112,7 +112,7 @@ public class JpaExtendRepositoryImpl<T, ID extends Serializable> extends SimpleJ
                     predicate.getExpressions().add(criteriaBuilder.gt(root.get(field.getName()).as(paramClazz), (Number) paramValue));
                 } else if (jpaParam.queryType() == JpaParam.QueryType.GE) {
                     if (paramValue instanceof Date) {
-                        predicate.getExpressions().add(criteriaBuilder.greaterThanOrEqualTo(root.get("createTime"), (Date) paramValue));
+                        predicate.getExpressions().add(criteriaBuilder.greaterThanOrEqualTo(root.get(field.getName()), (Date) paramValue));
                     } else if (!(paramValue instanceof Number)) {
                         throw new IllegalArgumentException("param value not Number");
                     } else {
@@ -125,7 +125,7 @@ public class JpaExtendRepositoryImpl<T, ID extends Serializable> extends SimpleJ
                     predicate.getExpressions().add(criteriaBuilder.lt(root.get(field.getName()).as(paramClazz), (Number) paramValue));
                 } else if (jpaParam.queryType() == JpaParam.QueryType.LE) {
                     if (paramValue instanceof Date) {
-                        predicate.getExpressions().add(criteriaBuilder.lessThanOrEqualTo(root.get("createTime"), (Date) paramValue));
+                        predicate.getExpressions().add(criteriaBuilder.lessThanOrEqualTo(root.get(field.getName()), (Date) paramValue));
                     } else if (!(paramValue instanceof Number)) {
                         throw new IllegalArgumentException("param value not Number");
                     } else {
